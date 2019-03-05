@@ -1,58 +1,36 @@
 <template>
   <div class="hello">
-    <!--  <h1>{{ msg }}</h1>
-    <h2>Essential Links</h2>
-    <ul>
-      <li>
-        <a href="https://vuejs.org" target="_blank" rel="noopener">Core Docs</a>
-      </li>
-      <li>
-        <a href="https://forum.vuejs.org" target="_blank" rel="noopener">Forum</a>
-      </li>
-      <li>
-        <a href="http://chat.vuejs.org/" target="_blank" rel="noopener">Vue Community Chat</a>
-      </li>
-      <li>
-        <a href="https://twitter.com/vuejs" target="_blank" rel="noopener">Twitter</a>
-      </li>
-      <li>
-        <a
-          href="http://vuejs-templates.github.io/webpack/"
-          target="_blank"
-          rel="noopener"
-        >Docs for This Template</a>
-      </li>
-    </ul>
-    <h2>Ecosystem</h2>
-    <ul>
-      <li>
-        <a href="http://router.vuejs.org/" target="_blank" rel="noopener">vue-router</a>
-      </li>
-      <li>
-        <a href="http://vuex.vuejs.org/" target="_blank" rel="noopener">vuex</a>
-      </li>
-      <li>
-        <a href="http://vue-loader.vuejs.org/" target="_blank" rel="noopener">vue-loader</a>
-      </li>
-      <li>
-        <a href="https://github.com/vuejs/awesome-vue" target="_blank" rel="noopener">awesome-vue</a>
-      </li>
-    </ul>-->
     <div>
       <h1>Teams</h1>
+      <md-field>
+        <label>Search Teams</label>
+        <md-input v-model="search" @change></md-input>
+      </md-field>
+
       <br>
-      <article v-for="(team, idx) in teams" :key="idx">
+      <md-tabs v-if="authLevel==2" md-sync-route @change="onChange">
+        <md-tab id="tab-cargo" md-label="Cargo" @click="onChange(0)"></md-tab>
+        <md-tab id="tab-hatch" md-label="Hatch" @click="onChange(1)"></md-tab>
+        <md-tab id="tab-custom" md-label="Custom" @click="onChange(2)"></md-tab>
+      </md-tabs>
+      <article v-for="(team, idx) in filteredTeams" :key="idx">
         <!-- <h4>Team: {{team.Name}} {{team.Number}}</h4>
-        <button @click="openTeamPage(team.Number)">Team Page</button> -->
+        <button @click="openTeamPage(team.Number)">Team Page</button>-->
         <md-card>
           <md-card-header>
             <div class="md-title">{{team.Name}} {{team.Number}}</div>
           </md-card-header>
 
-          <md-card-content></md-card-content>
+          <md-card-content>
+            <TeamSummaryView
+              v-if="authLevel==2"
+              :team="team.Number"
+              @update="saveSummary(team.Number,$event)"
+            ></TeamSummaryView>
+          </md-card-content>
 
           <md-card-actions>
-            <md-button  @click="openTeamPage(team.Number)">Team Page</md-button>
+            <md-button @click="openTeamPage(team.Number)">Team Page</md-button>
           </md-card-actions>
         </md-card>
       </article>
@@ -61,24 +39,78 @@
 </template>
 
 <script>
+import TeamSummaryView from "./TeamSummaryView";
 import { db } from "../main";
 import axios from "axios";
 export default {
   name: "hello",
+  components: {
+    TeamSummaryView
+  },
+  props: {
+    mode: Number,
+    submitter: String
+  },
   data() {
     return {
       msg: "Welcome to Your Vue.js PWA",
       teams: [],
+      filteredTeams: [],
       tba_teams: [],
       games: [],
+      teamSummary: {},
       name: "",
-      num: ""
+      num: "",
+      activeTab: 0,
+      search: "",
+      authLevel: 0
     };
   },
+  computed: {
+    sortFactor() {
+      const sortings = { 0: "cargo", 1: "hatch", 2: "custom" };
+      return sortings[this.activeTab];
+    }
+  },
+  watch: {
+    sortFactor: function(val) {
+      this.teams = this.teams.sort(this.sortTeams);
+    },
+    search: function(val) {
+      let filter = new RegExp(this.search, "i");
+      this.filteredTeams = this.teams.filter(
+        t => String(t.Number).match(filter) || t.Name.match(filter)
+      );
+    },
+    teams:function(val){
+      this.filteredTeams = this.teams
+    }
+  },
   mounted() {
+    if (!(this.mode == 0 || this.mode == 1 || this.mode == 2))
+      this.authLevel = 0;
+    else this.authLevel = this.mode;
     this.readTeams("cache");
   },
   methods: {
+    sortedItems() {},
+    sortTeams(t1, t2) {
+      // console.log(this.teamSummary[t1.Number][this.sortFactor]);
+      // console.log(this.teamSummary[t2.Number][this.sortFactor]);
+      if (
+        this.teamSummary[t1.Number][this.sortFactor] <
+        this.teamSummary[t2.Number][this.sortFactor]
+      ) {
+        return 1;
+      }
+      if (
+        this.teamSummary[t1.Number][this.sortFactor] >
+        this.teamSummary[t2.Number][this.sortFactor]
+      ) {
+        return -1;
+      }
+      return 0;
+    },
     readTeams(source) {
       console.log("Getting teams from " + source);
       let cache = true;
@@ -88,36 +120,36 @@ export default {
           console.log(snapshot.size);
           if (snapshot.size == 0) this.readTeams("server");
           snapshot.forEach(team => {
-            console.log(team.id, " => ", team.data());
+            // console.log(team.id, " => ", team.data());
             this.teams.push(team.data());
+            if (!(team.data().Number in this.teamSummary))
+              this.teamSummary[team.data().Number] = { cargo: -1, hatch: -1 };
           });
         });
     },
     openTeamPage(team) {
-      this.$router.push({ name: "Team", params: { team: String(team) } });
+      console.log("Mode " + this.authLevel);
+      if (this.authLevel == 0) {
+        this.$router.replace({
+          name: "Scouting Form",
+          params: { team: String(team), submitter: this.submitter }
+        });
+      } else {
+        this.$router.push({
+          name: "Team",
+          params: { team: String(team), authLevel: this.authLevel }
+        });
+      }
+    },
+    saveSummary(team, event) {
+      this.teamSummary[team] = event;
+      // console.log(this.teamSummary);
+    },
+
+    onChange(tabIndex) {
+      console.log(tabIndex);
+      this.activeTab = tabIndex;
     }
-    // getTeamsFromTBA() {
-    //   axios
-    //     .get(
-    //       "https://www.thebluealliance.com/api/v3/district/2019isr/teams/simple",
-    //       {
-    //         params: {
-    //           "X-TBA-Auth-Key":
-    //             "xrH5bG5gww328ElniDbfigLhvcU73Vtdb0Qlh8o4WW4ztnWCbOMYW7Z29pPMh2Ch"
-    //         }
-    //       }
-    //     )
-    //     .then(response => {
-    //       console.log(response)
-    //       this.tba_teams = response.data;
-    //       this.tba_teams.forEach((team)=>{
-    //         db.collection('Teams').doc(String(team.team_number)).set({
-    //           'Name':team.nickname,
-    //           'Number':team.team_number
-    //         })
-    //       })
-    //     });
-    // }
   }
 };
 </script>
@@ -143,3 +175,5 @@ a {
   color: #35495e;
 }
 </style>
+
+
