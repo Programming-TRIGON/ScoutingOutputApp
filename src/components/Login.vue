@@ -4,9 +4,13 @@
       <label>Scouter Name</label>
       <md-input v-model="name" placeholder="Scouter Name"></md-input>
     </md-field>
-    <md-button class="md-raised md-primary" @click="openTeamList(0)">New Scouting Report</md-button>
-    <md-button v-if="head_auth" class="md-raised md-primary" @click="openTeamList(1)">Head of Shift</md-button>
-    <md-button v-if="strategy_auth" class="md-raised md-primary" @click="openTeamList(2)">Strategy</md-button>
+    <md-field>
+      <label>Team Number</label>
+      <md-input v-model="team" placeholder="Team Number"></md-input>
+    </md-field>
+    <md-button class="md-raised md-primary" @click="openForm">New Scouting Report</md-button>
+    <md-button v-if="head_auth" class="md-raised md-primary" @click="addComment">Head of Shift</md-button>
+    <md-button v-if="strategy_auth" class="md-raised md-primary" @click="openTeamList">Strategy</md-button>
   </div>
 </template>
 <script>
@@ -15,6 +19,7 @@ export default {
   data() {
     return {
       name: "",
+      team: "",
       head_auth: false,
       strategy_auth: false
     };
@@ -34,8 +39,23 @@ export default {
     }
   },
   methods: {
-    openTeamList(mode) {
-      this.$router.push({ name: "Team List", params: { mode: mode , submitter:this.name} });
+    openTeamList() {
+      this.$router.push({
+        name: "Team List",
+        params: { submitter: this.name, mode: 2 }
+      });
+    },
+    openForm() {
+      this.$router.push({
+        name: "Scouting Form",
+        params: { team: String(this.team), submitter: this.name }
+      });
+    },
+    addComment() {
+      this.$router.push({
+        name: "Team",
+        params: { team: String(this.team), authLevel: 1 }
+      });
     }
   }
 };

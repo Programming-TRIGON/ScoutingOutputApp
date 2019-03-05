@@ -63,7 +63,7 @@ export default {
       num: "",
       activeTab: 0,
       search: "",
-      authLevel: 0
+      authLevel: 2
     };
   },
   computed: {
@@ -87,9 +87,6 @@ export default {
     }
   },
   mounted() {
-    if (!(this.mode == 0 || this.mode == 1 || this.mode == 2))
-      this.authLevel = 0;
-    else this.authLevel = this.mode;
     this.readTeams("cache");
   },
   methods: {
