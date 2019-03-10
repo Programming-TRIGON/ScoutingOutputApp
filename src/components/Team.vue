@@ -195,8 +195,25 @@
         class="chartjs-render-monitor"
         style="display: block;e width: 722px; height: 361px;"
       ></canvas>
-    </div>
+      <!-- <canvas
+        id="climbChart"
+        width="722"
+        height="361"
+        class="chartjs-render-monitor"
+        style="display: block;e width: 722px; height: 361px;"
+      ></canvas>-->
+    
+      <md-table v-model="countedClimbLevels" md-card>
+        <md-table-toolbar>
+          <h1 class="md-title">Climbs</h1>
+        </md-table-toolbar>
 
+        <md-table-row slot="md-table-row" slot-scope="{ item }">
+          <md-table-cell md-label="Level">{{ item.key }}</md-table-cell>
+          <md-table-cell md-label="Times">{{ item.value }}</md-table-cell>
+        </md-table-row>
+      </md-table>
+    </div>
     <!-- Comments -->
     <div>
       <h3>Comments</h3>
@@ -251,11 +268,36 @@ export default {
   computed: {
     disabled: function() {
       return !this.edit;
+    },
+    countedClimbLevels: function() {
+      const levelNames = {
+        "1": "Level 0",
+        "2": "Level 1",
+        "3": "Level 2",
+        "-1": "Didn't Try"
+      };
+      const levels = this.games.map(g => levelNames[g.climb_level]);
+      console.log(levels);
+      let countedLevels = {};
+      for (var i = 0; i < levels.length; ++i) {
+        if (!countedLevels[levels[i]]) countedLevels[levels[i]] = 0;
+        ++countedLevels[levels[i]];
+      }
+      // console.log(this.games);
+      console.log(countedLevels);
+
+      let ret = [];
+      for (let i in countedLevels) {
+        console.log(i);
+        ret.push({ key: i, value: countedLevels[i] });
+      }
+      return ret;
     }
   },
   watch: {
     matches: function(val) {
       this.createChart();
+      // this.createClimbPiChart();
     },
     chartMode: function(val) {
       this.createChart();
@@ -265,7 +307,10 @@ export default {
     }
   },
   mounted() {
-    if (this.authLevel == 2) this.createChart();
+    if (this.authLevel == 2) {
+      this.createChart();
+      // this.createClimbPiChart();
+    }
   },
   created() {
     if (this.authLevel == 2) {
@@ -410,6 +455,39 @@ export default {
         });
       }
     }
+    // createClimbPiChart() {
+    //   let data = {
+    //     datasets: [
+    //       {
+    //         data: [],
+    //         backgroundColor: "rgba(255, 159, 64, 1)"
+    //       }
+    //     ],
+
+    //     // These labels appear in the legend and in the tooltips when hovering different arcs
+    //     labels: []
+    //   };
+    //   for (var i in this.countedClimbLevels) {
+    //     data.datasets[0].data.push(i);
+    //     data.labels.push(this.countedClimbLevels[i]);
+    //   }
+    //   var ctx = document.getElementById("climbChart").getContext("2d");
+
+    //   var myPieChart = new Chart(ctx, {
+    //     type: "pie",
+    //     data: data,
+    //     options: {
+    //       title: {
+    //         display: false
+    //       },
+    //       tooltips: {
+    //         mode: "index",
+    //         intersect: false
+    //       },
+    //       responsive: true
+    //     }
+    //   });
+    // }
   }
 };
 </script>

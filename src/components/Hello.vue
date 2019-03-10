@@ -13,7 +13,17 @@
         <md-tab id="tab-hatch" md-label="Hatch" @click="onChange(1)"></md-tab>
         <md-tab id="tab-custom" md-label="Custom" @click="onChange(2)"></md-tab>
       </md-tabs>
-      <article v-for="(team, idx) in filteredTeams" :key="idx">
+      <div v-if="activeTab==2">
+        <md-field>
+          <label>Cargo Weight</label>
+          <md-input v-model="cargoCustomWeight" size="5"></md-input>
+        </md-field>
+        <md-field>
+          <label>Hatch Weight</label>
+          <md-input v-model="hatchCustomWeight"></md-input>
+        </md-field>
+      </div>
+      <article v-for="(team, idx) in filteredTeams" :key="team.Number">
         <!-- <h4>Team: {{team.Name}} {{team.Number}}</h4>
         <button @click="openTeamPage(team.Number)">Team Page</button>-->
         <md-card>
@@ -27,6 +37,10 @@
               :team="team.Number"
               @update="saveSummary(team.Number,$event)"
             ></TeamSummaryView>
+            <div v-if="activeTab==2" :key="customUpdateIndex">
+              <b>Custom:</b>
+              {{customData(team.Number)}}
+            </div>
           </md-card-content>
 
           <md-card-actions>
@@ -61,9 +75,13 @@ export default {
       teamSummary: {},
       name: "",
       num: "",
-      activeTab: 0,
+      activeTab: -1,
       search: "",
-      authLevel: 2
+      authLevel: 2,
+
+      cargoCustomWeight: 0.5,
+      hatchCustomWeight: 0.5,
+      customUpdateIndex: 0
     };
   },
   computed: {
@@ -73,8 +91,22 @@ export default {
     }
   },
   watch: {
-    sortFactor: function(val) {
-      this.teams = this.teams.sort(this.sortTeams);
+    cargoCustomWeight: {
+      handler: function() {
+        this.computeCustom();
+      }
+    },
+    hatchCustomWeight: {
+      handler: function() {
+        this.computeCustom();
+      }
+    },
+    activeTab: {
+      immediate: true,
+      handler: function(val) {
+        console.log("Sorting by " + this.sortFactor);
+        this.teams = this.teams.sort(this.sortTeams);
+      }
     },
     search: function(val) {
       let filter = new RegExp(this.search, "i");
@@ -82,14 +114,34 @@ export default {
         t => String(t.Number).match(filter) || t.Name.match(filter)
       );
     },
-    teams:function(val){
-      this.filteredTeams = this.teams
+    teams: function(val) {
+      this.filteredTeams = this.teams;
     }
   },
   mounted() {
     this.readTeams("cache");
   },
+  created() {
+    this.filteredTeams = this.filteredTeams.sort(this.sortTeams);
+  },
   methods: {
+    computeCustom() {
+      let self = this;
+      Object.keys(this.teamSummary).forEach(function(key, index) {
+        // key: the name of the object key
+        // index: the ordinal position of the key within the object
+        let t = self.teamSummary[key];
+        t.custom =
+          self.cargoCustomWeight * t.cargo + self.hatchCustomWeight * t.hatch;
+        console.log(t.custom);
+      });
+      this.customUpdateIndex++;
+      this.teams = this.teams.sort(this.sortTeams);
+    },
+    customData(team) {
+      console.log(team + ":" + this.teamSummary[team].custom);
+      return this.teamSummary[team].custom;
+    },
     sortedItems() {},
     sortTeams(t1, t2) {
       // console.log(this.teamSummary[t1.Number][this.sortFactor]);
@@ -122,6 +174,7 @@ export default {
             if (!(team.data().Number in this.teamSummary))
               this.teamSummary[team.data().Number] = { cargo: -1, hatch: -1 };
           });
+          this.activeTab = 0;
         });
     },
     openTeamPage(team) {
@@ -140,12 +193,14 @@ export default {
     },
     saveSummary(team, event) {
       this.teamSummary[team] = event;
-      // console.log(this.teamSummary);
+      this.teamSummary[team]["custom"] = -1;
+
+      console.log(this.teamSummary[team]);
     },
 
     onChange(tabIndex) {
       console.log(tabIndex);
-      this.activeTab = tabIndex;
+      if (tabIndex != -1) this.activeTab = tabIndex;
     }
   }
 };

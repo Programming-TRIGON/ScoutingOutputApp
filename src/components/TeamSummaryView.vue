@@ -7,15 +7,16 @@
         <br>
         <br>
       </article>-->
+      <!-- {{games}} -->
       <article>
         <b>Matches:</b>
         {{games.length}}
       </article>
-      <article>
+      <article v-model="cargoStats">
         <b>Cargo</b>
         : Avg: {{cargoStats.avg}} Median: {{cargoStats.median}} Min: {{cargoStats.min}} Max: {{cargoStats.max}}
       </article>
-      <article>
+      <article v-model="hatchStats">
         <b>Hatch</b>
         : Avg: {{hatchStats.avg}} Median: {{hatchStats.median}} Min: {{hatchStats.min}} Max: {{hatchStats.max}}
       </article>
