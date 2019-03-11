@@ -97,89 +97,10 @@
       </md-dialog-actions>
     </md-dialog>
 
-    <!-- <md-table v-model="games" md-card md-sort="match_number" md-sort-order="asc" md-fixed-header>
-      <md-table-toolbar>
-        <h1 class="md-title">Matches</h1>
-      </md-table-toolbar>
-
-      <md-table-row slot="md-table-row" slot-scope="{ item }">
-        <md-table-cell md-label="Match" md-sort-by="match_number">{{ item.match_number }}</md-table-cell>
-
-        <md-table-cell
-          md-label="Start Level"
-          md-sort-by="auto_start_level"
-        >{{ item.auto_start_level }}</md-table-cell>
-        <md-table-cell md-label="Auto Rocket Cargo High" md-sort-by="auto_rocket_cargo_high">
-          <b>{{ item.auto_rocket_cargo_high }}</b>
-        </md-table-cell>
-        <md-table-cell
-          md-label="Auto Rocket Cargo Medium"
-          md-sort-by="auto_rocket_cargo_medium"
-        >{{ item.auto_rocket_cargo_medium }}</md-table-cell>
-        <md-table-cell
-          md-label="Auto Rocket Cargo Low"
-          md-sort-by="auto_rocket_cargo_low"
-        >{{ item.auto_rocket_cargo_low }}</md-table-cell>
-        <md-table-cell
-          md-label="Auto Rocket Hatch High"
-          md-sort-by="auto_rocket_hatch_high"
-        >{{ item.auto_rocket_hatch_high }}</md-table-cell>
-        <md-table-cell
-          md-label="Auto Rocket Hatch Medium"
-          md-sort-by="auto_rocket_hatch_medium"
-        >{{ item.auto_rocket_hatch_medium }}</md-table-cell>
-        <md-table-cell
-          md-label="Auto Rocket Hatch Low"
-          md-sort-by="auto_rocket_hatch_low"
-        >{{ item.auto_rocket_hatch_low }}</md-table-cell>
-        <md-table-cell
-          md-label="Auto Ship Hatch"
-          md-sort-by="auto_ship_hatch"
-        >{{ item.auto_ship_hatch }}</md-table-cell>
-        <md-table-cell
-          md-label="Auto Ship Cargo"
-          md-sort-by="auto_ship_cargo"
-        >{{ item.auto_ship_cargo }}</md-table-cell>
-
-        <md-table-cell
-          md-label="Teleop Rocket Cargo High"
-          md-sort-by="teleop_rocket_cargo_high"
-        >{{ item.teleop_rocket_cargo_high }}</md-table-cell>
-        <md-table-cell
-          md-label="Teleop Rocket Cargo Medium"
-          md-sort-by="teleop_rocket_cargo_medium"
-        >{{ item.teleop_rocket_cargo_medium }}</md-table-cell>
-        <md-table-cell
-          md-label="Teleop Rocket Cargo Low"
-          md-sort-by="teleop_rocket_cargo_low"
-        >{{ item.teleop_rocket_cargo_low }}</md-table-cell>
-        <md-table-cell
-          md-label="Teleop Rocket Hatch High"
-          md-sort-by="teleop_rocket_hatch_high"
-        >{{ item.teleop_rocket_hatch_high }}</md-table-cell>
-        <md-table-cell
-          md-label="Teleop Rocket Hatch Medium"
-          md-sort-by="teleop_rocket_hatch_medium"
-        >{{ item.teleop_rocket_hatch_medium }}</md-table-cell>
-        <md-table-cell
-          md-label="Teleop Rocket Hatch Low"
-          md-sort-by="teleop_rocket_hatch_low"
-        >{{ item.teleop_rocket_hatch_low }}</md-table-cell>
-        <md-table-cell
-          md-label="Teleop Ship Hatch"
-          md-sort-by="teleop_ship_hatch"
-        >{{ item.teleop_ship_hatch }}</md-table-cell>
-        <md-table-cell
-          md-label="Teleop Ship Cargo"
-          md-sort-by="teleop_ship_cargo"
-        >{{ item.teleop_ship_cargo }}</md-table-cell>
-
-        <md-table-cell md-label="Climb Level" md-sort-by="climb_level">{{ item.climb_level }}</md-table-cell>
-      </md-table-row>
-    </md-table>-->
+   
     <!-- Strategy only -->
     <div v-if="authLevel==2">
-      <!-- Chart section -->
+      <!-- Chart and table section -->
       <div>
         <md-radio v-model="chartMode" value="auto">Auto</md-radio>
         <md-radio v-model="chartMode" value="teleop">Teleop</md-radio>
@@ -188,6 +109,62 @@
         <md-radio v-model="chartPiece" value="cargo">Cargo</md-radio>
         <md-radio v-model="chartPiece" value="hatch">Hatch</md-radio>
       </div>
+      <div>
+        <md-checkbox v-model="showStart">Start Level</md-checkbox>
+        <md-checkbox v-model="showClimb">Climb Level</md-checkbox>
+        <md-checkbox v-model="showComment">Comment</md-checkbox>
+      </div>
+      <md-table
+        v-model="games"
+        md-card
+        md-sort="match_number"
+        md-sort-order="asc"
+        md-fixed-header
+        :key="tableKey"
+        align="left"
+        @md-selected="onMatchTableSelect"
+      >
+        <md-table-toolbar>
+          <h1 class="md-title">Matches</h1>
+        </md-table-toolbar>
+
+        <md-table-row slot="md-table-row" slot-scope="{ item }" md-selectable="single">
+          <md-table-cell md-label="Match">{{ item.match_number }}</md-table-cell>
+
+          <md-table-cell
+            v-if="showStart"
+            md-label="Start Level"
+            md-sort-by="auto_start_level"
+          >{{ item.auto_start_level }}</md-table-cell>
+          <md-table-cell md-label="Climb Level" v-if="showClimb">{{ item.climb_level }}</md-table-cell>
+          <md-table-cell md-label="Comment" v-if="showComment">{{ item.personal_feedback }}</md-table-cell>
+          <md-table-cell md-label="Ship">{{ item[chartMode + "_ship_"+chartPiece] }}</md-table-cell>
+          <md-table-cell
+            md-label="Rocket Low"
+          >{{ item[chartMode + "_rocket_"+chartPiece + "_low"] }}</md-table-cell>
+          <md-table-cell
+            md-label="Rocket Medium"
+          >{{ item[chartMode + "_rocket_"+chartPiece + "_medium"] }}</md-table-cell>
+
+          <md-table-cell md-label="Rocket High">
+            <b>{{item[chartMode + "_rocket_"+chartPiece + "_high"] }}</b>
+          </md-table-cell>
+        </md-table-row>
+      </md-table>
+      <md-snackbar
+        md-position="center"
+        :md-duration="4000"
+        :md-active.sync="showSnackbar"
+        md-persistent
+      >
+        <span>Match {{currentSelectedMatch.match_number}}</span>
+        <md-button class="md-primary" @click="showSnackbar = false">
+          <md-icon>edit</md-icon>
+        </md-button>
+        <md-button class="md-primary" @click="deleteSelectedMatch">
+          <md-icon>delete</md-icon>
+        </md-button>
+      </md-snackbar>
       <canvas
         id="canvas"
         width="722"
@@ -202,7 +179,6 @@
         class="chartjs-render-monitor"
         style="display: block;e width: 722px; height: 361px;"
       ></canvas>-->
-    
       <md-table v-model="countedClimbLevels" md-card>
         <md-table-toolbar>
           <h1 class="md-title">Climbs</h1>
@@ -244,6 +220,13 @@ export default {
       chartMode: "Auto",
       chartPiece: "Cargo",
       myChart: null,
+      tableKey: 0,
+      showSnackbar: false,
+      currentSelectedMatch: {},
+      erased: [],
+      showStart: true,
+      showClimb: true,
+      showComment: false,
 
       // New comment dialog
       newCommentDialog: false,
@@ -300,10 +283,15 @@ export default {
       // this.createClimbPiChart();
     },
     chartMode: function(val) {
+      this.tableKey++;
       this.createChart();
     },
     chartPiece: function(val) {
+      this.tableKey++;
       this.createChart();
+    },
+    erased: function() {
+      this.games = this.games.filter(g => !this.erased.includes(g.id));
     }
   },
   mounted() {
@@ -314,6 +302,20 @@ export default {
   },
   created() {
     if (this.authLevel == 2) {
+      let self = this;
+      db.collection("Teams")
+        .doc(this.$props.team)
+        .get()
+        .then(doc => {
+          if (doc.data().erased) {
+            self.erased = doc.data().erased;
+          } else {
+            self.erased = [];
+          }
+          console.log("Erased: ");
+          console.log(this.erased);
+        });
+
       console.log("Current team: " + this.$props.team);
       db.collection("Teams")
         .doc(this.$props.team)
@@ -321,8 +323,11 @@ export default {
         .onSnapshot(snapshot => {
           snapshot.forEach(doc => {
             // console.log(doc.id, " => ", doc.data());
-            this.$data.games.push(doc.data());
-            this.matches.push(doc.data().match_number);
+
+            let g = doc.data();
+            g["id"] = doc.id;
+            this.$data.games.push(g);
+            this.matches.push(g.match_number);
           });
         });
     }
@@ -359,6 +364,20 @@ export default {
       });
   },
   methods: {
+    onMatchTableSelect(item) {
+      console.log(item);
+      this.currentSelectedMatch = item;
+      this.showSnackbar = true;
+    },
+    deleteSelectedMatch() {
+      this.erased.push(this.currentSelectedMatch.id);
+      db.collection("Teams")
+        .doc(this.team)
+        .update({
+          erased: this.erased
+        });
+      this.showSnackbar = false;
+    },
     addComment() {
       // Save the comment to the database
       db.collection("Teams")
@@ -455,39 +474,6 @@ export default {
         });
       }
     }
-    // createClimbPiChart() {
-    //   let data = {
-    //     datasets: [
-    //       {
-    //         data: [],
-    //         backgroundColor: "rgba(255, 159, 64, 1)"
-    //       }
-    //     ],
-
-    //     // These labels appear in the legend and in the tooltips when hovering different arcs
-    //     labels: []
-    //   };
-    //   for (var i in this.countedClimbLevels) {
-    //     data.datasets[0].data.push(i);
-    //     data.labels.push(this.countedClimbLevels[i]);
-    //   }
-    //   var ctx = document.getElementById("climbChart").getContext("2d");
-
-    //   var myPieChart = new Chart(ctx, {
-    //     type: "pie",
-    //     data: data,
-    //     options: {
-    //       title: {
-    //         display: false
-    //       },
-    //       tooltips: {
-    //         mode: "index",
-    //         intersect: false
-    //       },
-    //       responsive: true
-    //     }
-    //   });
-    // }
   }
 };
 </script>

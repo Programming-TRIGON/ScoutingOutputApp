@@ -3,6 +3,8 @@
     <header>
       <span>Trigon Scouting Output App</span>
       <img src="./assets/logo.png" alt="Vue.js PWA" id="logo-image">
+      <link href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet">
     </header>
     <main>
       <router-view></router-view>

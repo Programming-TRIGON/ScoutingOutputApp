@@ -1,6 +1,6 @@
 <template>
   <!-- Your HTML goes here -->
-  <div id="team-summary-view">
+  <div id="team-summary-view" :key="renderIdx">
     <div>
       <!-- <article v-for="(game,idx) in games" :key="idx">
         <article v-for="(data,j) in game" :key="j">{{data.key}}: {{data.value}}</article>
@@ -33,8 +33,10 @@ export default {
   data() {
     return {
       games: [],
-      cargoStats:{},
-      hatchStats: {}
+      cargoStats: {},
+      hatchStats: {},
+      erased: [],
+      renderIdx: 0
     };
   },
   computed: {
@@ -49,12 +51,16 @@ export default {
     }
   },
   watch: {
-    games(){
-      this.cargoStats = this.generateStats("cargo")
-      this.hatchStats = this.generateStats("hatch")
+    games() {
+      this.cargoStats = this.generateStats("cargo");
+      this.hatchStats = this.generateStats("hatch");
+      this.renderIdx++;
     },
     avgData(val) {
       this.$emit("update", val);
+    },
+    erased: function() {
+      this.games = this.games.filter(g => !this.erased.includes(g.id));
     }
   },
   firestore() {
@@ -67,19 +73,34 @@ export default {
     // console.log("Current team: " + this.$props.team);
     db.collection("Teams")
       .doc(String(this.$props.team))
-      .collection("Games")
-      .onSnapshot(snapshot => {
-        snapshot.forEach(doc => {
-          let game = [];
-          // console.log(doc.id, " => ", doc.data());
-          Object.keys(doc.data()).forEach(key => {
-            game.push({
-              key: key,
-              value: doc.data()[key]
+      .get()
+      .then(doc => {
+        if (doc.data().erased) {
+          this.erased = doc.data().erased;
+        } else {
+          this.erased = [];
+        }
+        console.log("Erased: ");
+        console.log(this.erased);
+
+        db.collection("Teams")
+          .doc(String(this.$props.team))
+          .collection("Games")
+          .onSnapshot(snapshot => {
+            snapshot.forEach(doc => {
+              let game = [];
+              // console.log(doc.id, " => ", doc.data());
+              if (!this.erased.includes(doc.id)) {
+                Object.keys(doc.data()).forEach(key => {
+                  game.push({
+                    key: key,
+                    value: doc.data()[key]
+                  });
+                });
+                this.games.push(game);
+              }
             });
           });
-          this.games.push(game);
-        });
       });
   },
   methods: {

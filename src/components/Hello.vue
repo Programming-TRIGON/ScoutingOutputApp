@@ -104,6 +104,7 @@ export default {
     activeTab: {
       immediate: true,
       handler: function(val) {
+        if(this.activeTab == 2) this.computeCustom()
         console.log("Sorting by " + this.sortFactor);
         this.teams = this.teams.sort(this.sortTeams);
       }
@@ -133,13 +134,12 @@ export default {
         let t = self.teamSummary[key];
         t.custom =
           self.cargoCustomWeight * t.cargo + self.hatchCustomWeight * t.hatch;
-        console.log(t.custom);
       });
       this.customUpdateIndex++;
       this.teams = this.teams.sort(this.sortTeams);
     },
     customData(team) {
-      console.log(team + ":" + this.teamSummary[team].custom);
+      // console.log(team + ":" + this.teamSummary[team].custom);
       return this.teamSummary[team].custom;
     },
     sortedItems() {},
@@ -195,7 +195,7 @@ export default {
       this.teamSummary[team] = event;
       this.teamSummary[team]["custom"] = -1;
 
-      console.log(this.teamSummary[team]);
+      // console.log(this.teamSummary[team]);
     },
 
     onChange(tabIndex) {

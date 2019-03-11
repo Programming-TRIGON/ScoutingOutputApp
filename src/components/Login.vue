@@ -8,8 +8,8 @@
       <label>Team Number</label>
       <md-input v-model="team" placeholder="Team Number"></md-input>
     </md-field>
-    <md-button class="md-raised md-primary" @click="openForm">New Scouting Report</md-button>
-    <md-button v-if="head_auth" class="md-raised md-primary" @click="addComment">Head of Shift</md-button>
+    <md-button class="md-raised md-primary" @click="openForm" :disabled="name == ''|| team.length != 4 ">New Scouting Report</md-button>
+    <md-button v-if="head_auth" class="md-raised md-primary" @click="addComment" :disabled="name == ''|| team.length != 4 ">Head of Shift</md-button>
     <md-button v-if="strategy_auth" class="md-raised md-primary" @click="openTeamList">Strategy</md-button>
   </div>
 </template>
