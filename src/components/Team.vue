@@ -97,7 +97,6 @@
       </md-dialog-actions>
     </md-dialog>
 
-   
     <!-- Strategy only -->
     <div v-if="authLevel==2">
       <!-- Chart and table section -->
@@ -121,7 +120,6 @@
         md-sort-order="asc"
         md-fixed-header
         :key="tableKey"
-        align="left"
         @md-selected="onMatchTableSelect"
       >
         <md-table-toolbar>
@@ -158,12 +156,47 @@
         md-persistent
       >
         <span>Match {{currentSelectedMatch.match_number}}</span>
-        <md-button class="md-primary" @click="showSnackbar = false">
+        <md-button class="md-primary" @click="editSelectedMatch">
           <md-icon>edit</md-icon>
         </md-button>
         <md-button class="md-primary" @click="deleteSelectedMatch">
           <md-icon>delete</md-icon>
         </md-button>
+      </md-snackbar>
+      <md-snackbar
+        md-position="center"
+        :md-duration="4000"
+        :md-active.sync="showSuccessfulDeleteSnackbar"
+        md-persistent
+      >
+        <span>Successfully removed match {{currentSelectedMatch.match_number}}</span>
+        <md-button class="md-primary" @click="restoreSelectedMatch">
+          <md-icon>undo</md-icon>
+        </md-button>
+      </md-snackbar>
+
+      <md-dialog :md-active.sync="showMatchEditDialog">
+        <md-dialog-title>Edit match {{currentSelectedMatch.match_number}}</md-dialog-title>
+        <div class="dialog-content">
+          <md-content class="md-scrollbar">
+            <md-field v-for="(value, key) in currentSelectedMatch" :key="key">
+              <label>{{key.replace(new RegExp('_', 'g'), ' ')}}</label>
+              <md-input v-model.number="currentSelectedMatch[key]"></md-input>
+            </md-field>
+          </md-content>
+        </div>
+        <md-dialog-actions>
+          <md-button class="md-primary" @click="showMatchEditDialog = false">Close</md-button>
+          <md-button class="md-primary" @click="saveEditsForSelectedMatch">Save</md-button>
+        </md-dialog-actions>
+      </md-dialog>
+      <md-snackbar
+        md-position="center"
+        :md-duration="4000"
+        :md-active.sync="showSuccessfulEditSnackbar"
+        md-persistent
+      >
+        <span>Successfully edited match {{currentSelectedMatch.match_number}}</span>
       </md-snackbar>
       <canvas
         id="canvas"
@@ -199,6 +232,31 @@
         </md-card>
       </div>
     </div>
+
+    <!-- Deleted Matches -->
+    <md-table v-model="erasedMatches" md-card
+        md-fixed-header :key="tableKey"
+        @md-selected="onErasedMatchTableSelect">
+      <md-table-toolbar>
+        <h1 class="md-title">Erased Matches</h1>
+      </md-table-toolbar>
+
+      <md-table-row slot="md-table-row" slot-scope="{ item }" md-selectable="single">
+        <md-table-cell md-label="ID" >{{ item.id }}</md-table-cell>
+        <md-table-cell md-label="Match" >{{ item.match_number }}</md-table-cell>
+      </md-table-row>
+    </md-table>
+     <md-snackbar
+        md-position="center"
+        :md-duration="4000"
+        :md-active.sync="showRestoreMatchSnackbar"
+        md-persistent
+      >
+        <span>Click to restore match {{currentSelectedMatch.match_number}}</span>
+        <md-button class="md-primary" @click="restoreSelectedMatch">
+          <md-icon>undo</md-icon>
+        </md-button>
+      </md-snackbar>
   </div>
 </template>
 
@@ -214,6 +272,7 @@ export default {
       //Data
       games: [],
       matches: [],
+      erasedMatches: [],
       dbComments: [],
 
       // Chart states
@@ -222,7 +281,11 @@ export default {
       myChart: null,
       tableKey: 0,
       showSnackbar: false,
+      showSuccessfulDeleteSnackbar: false,
       currentSelectedMatch: {},
+      showMatchEditDialog: false,
+      showSuccessfulEditSnackbar: false,
+      showRestoreMatchSnackbar: false,
       erased: [],
       showStart: true,
       showClimb: true,
@@ -292,6 +355,9 @@ export default {
     },
     erased: function() {
       this.games = this.games.filter(g => !this.erased.includes(g.id));
+      this.erasedMatches = this.erasedMatches.filter(g =>
+        this.erased.includes(g.id)
+      );
     }
   },
   mounted() {
@@ -326,9 +392,13 @@ export default {
 
             let g = doc.data();
             g["id"] = doc.id;
-            this.$data.games.push(g);
-            this.matches.push(g.match_number);
+            this.games.push(g);
+            this.erasedMatches.push(g);
           });
+          this.games.sort(
+            (g1, g2) => Number(g1.match_number) - Number(g2.match_number)
+          );
+          this.matches = this.games.map(g => g.match_number);
         });
     }
     db.collection("Teams")
@@ -369,6 +439,11 @@ export default {
       this.currentSelectedMatch = item;
       this.showSnackbar = true;
     },
+    onErasedMatchTableSelect(item){
+      console.log(item)
+      this.currentSelectedMatch = item
+      this.showRestoreMatchSnackbar = true
+    },
     deleteSelectedMatch() {
       this.erased.push(this.currentSelectedMatch.id);
       db.collection("Teams")
@@ -376,7 +451,38 @@ export default {
         .update({
           erased: this.erased
         });
+      tableKey ++
       this.showSnackbar = false;
+      this.showSuccessfulDeleteSnackbar = true;
+    },
+    editSelectedMatch() {
+      this.showMatchEditDialog = true;
+      this.showSnackbar = false;
+    },
+    saveEditsForSelectedMatch() {
+      this.showMatchEditDialog = false;
+      db.collection("Teams")
+        .doc(this.team)
+        .collection("Games")
+        .doc(this.currentSelectedMatch.id)
+        .update(this.currentSelectedMatch);
+
+      this.showSuccessfulEditSnackbar = true;
+    },
+    restoreSelectedMatch() {
+      var index = this.erased.indexOf(this.currentSelectedMatch.id);
+      console.log("Index: " + index);
+      if (index > -1) {
+        this.erased.splice(index, 1);
+        db.collection("Teams")
+          .doc(this.team)
+          .update({
+            erased: this.erased
+          });
+      }
+      this.tableKey ++
+      this.showSuccessfulDeleteSnackbar = false;
+      this.showRestoreMatchSnackbar = false;
     },
     addComment() {
       // Save the comment to the database
@@ -510,5 +616,9 @@ export default {
 
 .comment_list {
   max-height: 400px;
+}
+
+.dialog-content {
+  overflow: auto;
 }
 </style>

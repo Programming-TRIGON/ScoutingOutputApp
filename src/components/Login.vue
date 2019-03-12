@@ -24,10 +24,14 @@ export default {
       strategy_auth: false
     };
   },
+  mounted(){
+    if(localStorage.submitter){
+      this.name = localStorage.submitter
+    }
+  },
   watch: {
     name(val) {
-      console.log(val);
-
+      localStorage.submitter = val      
       if (val == "11599022") {
         this.strategy_auth = true;
       } else if (val == "11223344") {

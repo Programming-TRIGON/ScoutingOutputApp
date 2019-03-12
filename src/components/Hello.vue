@@ -2,6 +2,13 @@
   <div class="hello">
     <div>
       <h1>Teams</h1>
+      <!-- <md-field>
+        <label for="filter_teams">Filter Teams</label>
+        <md-select v-model="event_team_filter" name="filter_teams" id="filter_teams">
+          <md-option value="fight-club">Fight Club</md-option>
+          <md-option value="godfather">Godfather</md-option>
+        </md-select>
+      </md-field>-->
       <md-field>
         <label>Search Teams</label>
         <md-input v-model="search" @change></md-input>
@@ -23,7 +30,9 @@
           <md-input v-model="hatchCustomWeight"></md-input>
         </md-field>
       </div>
-      <article v-for="(team, idx) in filteredTeams" :key="team.Number">
+      <!-- Team list -->
+      <div :key="renderIdx">
+      <article v-for="(team, idx) in filteredTeams" :key="team.Number" v-if="event_teams.includes(Number(team.Number))">
         <!-- <h4>Team: {{team.Name}} {{team.Number}}</h4>
         <button @click="openTeamPage(team.Number)">Team Page</button>-->
         <md-card>
@@ -48,6 +57,7 @@
           </md-card-actions>
         </md-card>
       </article>
+      </div>
     </div>
   </div>
 </template>
@@ -70,7 +80,7 @@ export default {
       msg: "Welcome to Your Vue.js PWA",
       teams: [],
       filteredTeams: [],
-      tba_teams: [],
+      event_teams: [],
       games: [],
       teamSummary: {},
       name: "",
@@ -78,6 +88,7 @@ export default {
       activeTab: -1,
       search: "",
       authLevel: 2,
+      renderIdx:0,
 
       cargoCustomWeight: 0.5,
       hatchCustomWeight: 0.5,
@@ -91,6 +102,12 @@ export default {
     }
   },
   watch: {
+    event_teams: function() {
+      this.teams = this.teams.filter(t =>
+        this.event_teams.includes(Number(t.Number))
+      );
+      this.renderIdx ++;
+    },
     cargoCustomWeight: {
       handler: function() {
         this.computeCustom();
@@ -104,7 +121,7 @@ export default {
     activeTab: {
       immediate: true,
       handler: function(val) {
-        if(this.activeTab == 2) this.computeCustom()
+        if (this.activeTab == 2) this.computeCustom();
         console.log("Sorting by " + this.sortFactor);
         this.teams = this.teams.sort(this.sortTeams);
       }
@@ -120,6 +137,24 @@ export default {
     }
   },
   mounted() {
+    axios
+      .get(
+        "https://www.thebluealliance.com/api/v3/event/2019isde4/teams/simple",
+        {
+          headers: {
+            "X-TBA-Auth-Key":
+              "xrH5bG5gww328ElniDbfigLhvcU73Vtdb0Qlh8o4WW4ztnWCbOMYW7Z29pPMh2Ch"
+          }
+        }
+      )
+      .then(response => {
+        console.log(response);
+        this.event_teams = response.data.map(t => t.team_number);
+        console.log(this.event_teams);
+      })
+      .catch(response => {
+        console.log(response);
+      });
     this.readTeams("cache");
   },
   created() {

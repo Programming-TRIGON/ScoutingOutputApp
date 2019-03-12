@@ -33,7 +33,7 @@ db.enablePersistence()
     }
   });
 
-import { MdButton, MdContent, MdTabs, MdCard, MdField, MdTable, MdRipple, MdToolbar, MdDialog, MdList, MdCheckbox, MdSubheader, MdDivider, MdRadio,MdSwitch,MdSnackbar,MdIcon,MdSteppers } from 'vue-material/dist/components'
+import {MdMenu,MdButton, MdContent, MdTabs, MdCard, MdField, MdTable, MdRipple, MdToolbar, MdDialog, MdList, MdCheckbox, MdSubheader, MdDivider, MdRadio, MdSwitch, MdSnackbar, MdIcon, MdSteppers } from 'vue-material/dist/components'
 import 'vue-material/dist/vue-material.min.css'
 import 'vue-material/dist/theme/default.css'
 
@@ -55,6 +55,7 @@ Vue.use(MdSwitch)
 Vue.use(MdSnackbar)
 Vue.use(MdIcon)
 Vue.use(MdSteppers)
+Vue.use(MdMenu)
 
 
 

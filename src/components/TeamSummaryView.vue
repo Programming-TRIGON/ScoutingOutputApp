@@ -36,7 +36,7 @@ export default {
       cargoStats: {},
       hatchStats: {},
       erased: [],
-      renderIdx: 0
+      renderIdx: 0,
     };
   },
   computed: {
@@ -61,6 +61,7 @@ export default {
     },
     erased: function() {
       this.games = this.games.filter(g => !this.erased.includes(g.id));
+      this.renderIdx ++
     }
   },
   firestore() {
@@ -80,8 +81,8 @@ export default {
         } else {
           this.erased = [];
         }
-        console.log("Erased: ");
-        console.log(this.erased);
+        // console.log("Erased: ");
+        // console.log(this.erased);
 
         db.collection("Teams")
           .doc(String(this.$props.team))
