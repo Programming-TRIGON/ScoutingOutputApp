@@ -5,7 +5,7 @@ import TeamView from '@/components/Team'
 import Trials from '@/components/Trials'
 import Login from '@/components/Login'
 import ScoutingForm from '@/components/ScoutingForm'
-
+import AllianceMode from '@/components/AllianceMode'
 Vue.use(Router)
 
 export default new Router({
@@ -37,6 +37,12 @@ export default new Router({
       path: '/trials',
       name: 'Trials',
       component: Trials
+    },
+    {
+      path: '/alliance',
+      name: 'Alliance Mode',
+      component: AllianceMode,
+      props: true
     }
   ]
 })

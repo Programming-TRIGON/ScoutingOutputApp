@@ -1,7 +1,68 @@
 <template>
   <div class="hello">
     <div>
-      <h1>Teams</h1>
+      <md-toolbar class="md-large md-primary">
+        <div class="md-toolbar-row">
+          <div class="md-toolbar-section-end">
+            <md-button @click="allianceModeDialog = true">Alliance Mode</md-button>
+          </div>
+        </div>
+
+        <div class="md-toolbar-row md-toolbar-offset">
+          <h3 class="md-title">Teams</h3>
+        </div>
+      </md-toolbar>
+      <md-dialog :md-active.sync="allianceModeDialog">
+        <md-dialog-title>Alliance Mode</md-dialog-title>
+        <div align="right">
+          <md-switch v-model="getTBAAlliance">TBA</md-switch>
+        </div>
+
+        <!-- TBA alliance mode -->
+        <div v-if="getTBAAlliance">
+          <md-field>
+            <label>Match Number</label>
+            <md-input v-model="allianceMatchNumber"></md-input>
+          </md-field>
+          <md-field>
+            <label for="alliance_color">Alliance</label>
+            <md-select v-model="allianceColor" name="alliance_color" id="alliance_color">
+              <md-option value="blue">Blue</md-option>
+              <md-option value="red">Red</md-option>
+            </md-select>
+          </md-field>
+        </div>
+
+        <div v-if="!getTBAAlliance">
+          <div class="md-layout md-gutter">
+            <div class="md-layout-item md-medium-size-33 md-small-size-50 md-xsmall-size-100">
+              <div class="md-layout-item">
+                <md-field>
+                  <label>Team 1</label>
+                  <md-input v-model="allianceTeam1" type="number" class="small-number"></md-input>
+                </md-field>
+              </div>
+              <div class="md-layout-item">
+                <md-field>
+                  <label>Team 2</label>
+                  <md-input v-model="allianceTeam2" type="number" class="small-number"></md-input>
+                </md-field>
+              </div>
+              <div class="md-layout-item">
+                <md-field>
+                  <label>Team 3</label>
+                  <md-input v-model="allianceTeam3" type="number" class="small-number"></md-input>
+                </md-field>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <md-dialog-actions>
+          <md-button class="md-primary" @click="allianceModeDialog = false">Close</md-button>
+          <md-button class="md-primary" @click="openAllianceModePage">Go</md-button>
+        </md-dialog-actions>
+      </md-dialog>
       <!-- <md-field>
         <label for="filter_teams">Filter Teams</label>
         <md-select v-model="event_team_filter" name="filter_teams" id="filter_teams">
@@ -32,31 +93,35 @@
       </div>
       <!-- Team list -->
       <div :key="renderIdx">
-      <article v-for="(team, idx) in filteredTeams" :key="team.Number" v-if="event_teams.includes(Number(team.Number))">
-        <!-- <h4>Team: {{team.Name}} {{team.Number}}</h4>
-        <button @click="openTeamPage(team.Number)">Team Page</button>-->
-        <md-card>
-          <md-card-header>
-            <div class="md-title">{{team.Name}} {{team.Number}}</div>
-          </md-card-header>
+        <article
+          v-for="(team, idx) in filteredTeams"
+          :key="team.Number"
+          v-if="event_teams.includes(Number(team.Number))"
+        >
+          <!-- <h4>Team: {{team.Name}} {{team.Number}}</h4>
+          <button @click="openTeamPage(team.Number)">Team Page</button>-->
+          <md-card>
+            <md-card-header>
+              <div class="md-title">{{team.Name}} {{team.Number}}</div>
+            </md-card-header>
 
-          <md-card-content>
-            <TeamSummaryView
-              v-if="authLevel==2"
-              :team="team.Number"
-              @update="saveSummary(team.Number,$event)"
-            ></TeamSummaryView>
-            <div v-if="activeTab==2" :key="customUpdateIndex">
-              <b>Custom:</b>
-              {{customData(team.Number)}}
-            </div>
-          </md-card-content>
+            <md-card-content>
+              <TeamSummaryView
+                v-if="authLevel==2"
+                :team="team.Number"
+                @update="saveSummary(team.Number,$event)"
+              ></TeamSummaryView>
+              <div v-if="activeTab==2" :key="customUpdateIndex">
+                <b>Custom:</b>
+                {{customData(team.Number)}}
+              </div>
+            </md-card-content>
 
-          <md-card-actions>
-            <md-button @click="openTeamPage(team.Number)">Team Page</md-button>
-          </md-card-actions>
-        </md-card>
-      </article>
+            <md-card-actions>
+              <md-button @click="openTeamPage(team.Number)">Team Page</md-button>
+            </md-card-actions>
+          </md-card>
+        </article>
       </div>
     </div>
   </div>
@@ -66,6 +131,9 @@
 import TeamSummaryView from "./TeamSummaryView";
 import { db } from "../main";
 import axios from "axios";
+axios.defaults.headers.common["X-TBA-Auth-Key"] =
+  "xrH5bG5gww328ElniDbfigLhvcU73Vtdb0Qlh8o4WW4ztnWCbOMYW7Z29pPMh2Ch";
+
 export default {
   name: "hello",
   components: {
@@ -88,11 +156,19 @@ export default {
       activeTab: -1,
       search: "",
       authLevel: 2,
-      renderIdx:0,
+      renderIdx: 0,
 
       cargoCustomWeight: 0.5,
       hatchCustomWeight: 0.5,
-      customUpdateIndex: 0
+      customUpdateIndex: 0,
+
+      allianceModeDialog: false,
+      allianceMatchNumber: 0,
+      allianceColor: "blue",
+      getTBAAlliance: true,
+      allianceTeam1: 0,
+      allianceTeam2: 0,
+      allianceTeam3: 0
     };
   },
   computed: {
@@ -106,15 +182,17 @@ export default {
       this.teams = this.teams.filter(t =>
         this.event_teams.includes(Number(t.Number))
       );
-      this.renderIdx ++;
+      this.renderIdx++;
     },
     cargoCustomWeight: {
-      handler: function() {
+      handler: function(val) {
+        localStorage.cargoCustomWeight = val;
         this.computeCustom();
       }
     },
     hatchCustomWeight: {
-      handler: function() {
+      handler: function(val) {
+        localStorage.hatchCustomWeight = val;
         this.computeCustom();
       }
     },
@@ -137,15 +215,13 @@ export default {
     }
   },
   mounted() {
+    if (localStorage.cargoCustomWeight)
+      this.cargoCustomWeight = localStorage.cargoCustomWeight;
+    if (localStorage.hatchCustomWeight)
+      this.hatchCustomWeight = localStorage.hatchCustomWeight;
     axios
       .get(
-        "https://www.thebluealliance.com/api/v3/event/2019isde4/teams/simple",
-        {
-          headers: {
-            "X-TBA-Auth-Key":
-              "xrH5bG5gww328ElniDbfigLhvcU73Vtdb0Qlh8o4WW4ztnWCbOMYW7Z29pPMh2Ch"
-          }
-        }
+        "https://www.thebluealliance.com/api/v3/event/2019isde4/teams/simple"
       )
       .then(response => {
         console.log(response);
@@ -161,6 +237,27 @@ export default {
     this.filteredTeams = this.filteredTeams.sort(this.sortTeams);
   },
   methods: {
+    openAllianceModePage() {
+      localStorage.getAlliance = this.getTBAAlliance? "tba":"storage";
+
+      if (this.getTBAAlliance) {
+        localStorage.allianceMatchNumber = this.allianceMatchNumber;
+        localStorage.allianceColor = this.allianceColor;
+      } else {
+        localStorage.removeItem("allianceMatchNumber")
+        localStorage.removeItem("allianceColor")
+        const teams = ["1", "2", "3"];
+        teams.forEach(k => {
+          localStorage["allianceTeam" + k] = Number(this["allianceTeam" + k]);
+        });
+      }
+
+      this.allianceModeDialog = false;
+      this.$router.push({
+        path: "alliance",
+        params: { tba: this.getTBAAlliance }
+      });
+    },
     computeCustom() {
       let self = this;
       Object.keys(this.teamSummary).forEach(function(key, index) {

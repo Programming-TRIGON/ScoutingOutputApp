@@ -109,6 +109,7 @@
         <md-radio v-model="chartPiece" value="hatch">Hatch</md-radio>
       </div>
       <div>
+        <md-checkbox v-model="showSubmitter">Submitter</md-checkbox>
         <md-checkbox v-model="showStart">Start Level</md-checkbox>
         <md-checkbox v-model="showClimb">Climb Level</md-checkbox>
         <md-checkbox v-model="showComment">Comment</md-checkbox>
@@ -129,6 +130,10 @@
         <md-table-row slot="md-table-row" slot-scope="{ item }" md-selectable="single">
           <md-table-cell md-label="Match">{{ item.match_number }}</md-table-cell>
 
+          <md-table-cell
+            v-if="showSubmitter"
+            md-label="Submitter"
+          >{{ item.submitter }}</md-table-cell>
           <md-table-cell
             v-if="showStart"
             md-label="Start Level"
@@ -287,6 +292,8 @@ export default {
       showSuccessfulEditSnackbar: false,
       showRestoreMatchSnackbar: false,
       erased: [],
+
+      showSubmitter:true,
       showStart: true,
       showClimb: true,
       showComment: false,
