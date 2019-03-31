@@ -2,7 +2,9 @@
   <div>
     <md-toolbar :class="{'md-large':true, 'md-primary':color=='blue', 'md-accent':color=='red'}">
       <div class="md-toolbar-row">
-        <h3 class="md-title">Alliance Mode</h3>
+        <div class="md-toolbar-section-start">
+          <md-button @click="$router.go(-1)"><md-icon>arrow_back</md-icon></md-button>
+        </div>
       </div>
       <div v-if="getTBA" class="md-toolbar-row md-toolbar-offset">
         <h3 class="md-title">Match {{match}}</h3>
@@ -48,7 +50,7 @@ export default {
     return {
       match: 0,
       color: "blue",
-      event: "2019isde4", 
+      event: "2019iscmp", 
       teams: [],
       getTBA:true
     };

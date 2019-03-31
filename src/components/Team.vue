@@ -3,6 +3,9 @@
   <div id="team">
     <md-toolbar class="md-large md-primary">
       <div class="md-toolbar-row">
+        <div class="md-toolbar-section-start">
+          <md-button @click="$router.go(-1)"><md-icon>arrow_back</md-icon></md-button>
+        </div>
         <div class="md-toolbar-section-end">
           <md-button @click="newCommentDialog = true">Add Comment</md-button>
           <md-button @click="pitScoutingDialog = true">Pit Scouting</md-button>
@@ -16,7 +19,7 @@
 
     <!-- New Comment Dialog -->
     <md-dialog :md-active.sync="newCommentDialog">
-      <md-dialog-title>New Comment</md-dialog-title>
+      <md-dialog-title>Comment</md-dialog-title>
 
       <md-field>
         <label>Comment</label>
@@ -24,7 +27,11 @@
       </md-field>
 
       <md-dialog-actions>
-        <md-button class="md-primary" @click="newCommentDialog = false">Close</md-button>
+        <md-button
+          class="md-primary"
+          v-show="showCmtCloseBtn"
+          @click="newCommentDialog = false"
+        >Close</md-button>
         <md-button class="md-primary" @click="addComment">Save</md-button>
       </md-dialog-actions>
     </md-dialog>
@@ -99,6 +106,9 @@
 
     <!-- Strategy only -->
     <div v-if="authLevel==2">
+      <md-card class="info-card">
+        <TeamSummaryView :team="Number(team)"/>
+      </md-card>
       <!-- Chart and table section -->
       <div>
         <md-radio v-model="chartMode" value="auto">Auto</md-radio>
@@ -130,10 +140,7 @@
         <md-table-row slot="md-table-row" slot-scope="{ item }" md-selectable="single">
           <md-table-cell md-label="Match">{{ item.match_number }}</md-table-cell>
 
-          <md-table-cell
-            v-if="showSubmitter"
-            md-label="Submitter"
-          >{{ item.submitter }}</md-table-cell>
+          <md-table-cell v-if="showSubmitter" md-label="Submitter">{{ item.submitter }}</md-table-cell>
           <md-table-cell
             v-if="showStart"
             md-label="Start Level"
@@ -234,34 +241,41 @@
       <div class="comment_list">
         <md-card v-for="(cmt,idx) in dbComments" :key="idx">
           <md-card-content>{{cmt.comment}}</md-card-content>
+          <md-card-actions>
+            <md-button @click="onCommentClick(cmt)">Edit</md-button>
+          </md-card-actions>
         </md-card>
       </div>
     </div>
 
     <!-- Deleted Matches -->
-    <md-table v-model="erasedMatches" md-card
-        md-fixed-header :key="tableKey"
-        @md-selected="onErasedMatchTableSelect">
+    <md-table
+      v-model="erasedMatches"
+      md-card
+      md-fixed-header
+      :key="tableKey"
+      @md-selected="onErasedMatchTableSelect"
+    >
       <md-table-toolbar>
         <h1 class="md-title">Erased Matches</h1>
       </md-table-toolbar>
 
       <md-table-row slot="md-table-row" slot-scope="{ item }" md-selectable="single">
-        <md-table-cell md-label="ID" >{{ item.id }}</md-table-cell>
-        <md-table-cell md-label="Match" >{{ item.match_number }}</md-table-cell>
+        <md-table-cell md-label="ID">{{ item.id }}</md-table-cell>
+        <md-table-cell md-label="Match">{{ item.match_number }}</md-table-cell>
       </md-table-row>
     </md-table>
-     <md-snackbar
-        md-position="center"
-        :md-duration="4000"
-        :md-active.sync="showRestoreMatchSnackbar"
-        md-persistent
-      >
-        <span>Click to restore match {{currentSelectedMatch.match_number}}</span>
-        <md-button class="md-primary" @click="restoreSelectedMatch">
-          <md-icon>undo</md-icon>
-        </md-button>
-      </md-snackbar>
+    <md-snackbar
+      md-position="center"
+      :md-duration="4000"
+      :md-active.sync="showRestoreMatchSnackbar"
+      md-persistent
+    >
+      <span>Click to restore match {{currentSelectedMatch.match_number}}</span>
+      <md-button class="md-primary" @click="restoreSelectedMatch">
+        <md-icon>undo</md-icon>
+      </md-button>
+    </md-snackbar>
   </div>
 </template>
 
@@ -270,6 +284,8 @@
 import { db } from "../main";
 import Chart from "chart.js";
 import { functions } from "firebase";
+import TeamSummaryView from "./TeamSummaryView";
+
 export default {
   name: "Team",
   data() {
@@ -293,7 +309,7 @@ export default {
       showRestoreMatchSnackbar: false,
       erased: [],
 
-      showSubmitter:true,
+      showSubmitter: true,
       showStart: true,
       showClimb: true,
       showComment: false,
@@ -301,6 +317,7 @@ export default {
       // New comment dialog
       newCommentDialog: false,
       comment: null,
+      showCmtCloseBtn: true,
 
       // Pit scouting dialog
       pitScoutingDialog: false,
@@ -313,6 +330,9 @@ export default {
   },
   firestore() {
     return {};
+  },
+  components: {
+    TeamSummaryView
   },
   props: {
     team: String,
@@ -337,6 +357,7 @@ export default {
         ++countedLevels[levels[i]];
       }
       // console.log(this.games);
+      console.log(levelNames);
       console.log(countedLevels);
 
       let ret = [];
@@ -415,7 +436,8 @@ export default {
         this.dbComments = [];
         snapshot.forEach(doc => {
           // console.log(doc.id, " => ", doc.data());
-          this.dbComments.push(doc.data());
+          let cmt = { id: doc.id, ...doc.data() };
+          this.dbComments.push(cmt);
         });
       });
 
@@ -441,15 +463,26 @@ export default {
       });
   },
   methods: {
+    onCommentClick(cmt) {
+      this.showCmtCloseBtn = false;
+      this.comment = cmt.comment;
+      this.newCommentDialog = true;
+      db.collection("Teams")
+        .doc(this.team)
+        .collection("Comments")
+        .doc(cmt.id)
+        .delete();
+    },
+
     onMatchTableSelect(item) {
       console.log(item);
       this.currentSelectedMatch = item;
       this.showSnackbar = true;
     },
-    onErasedMatchTableSelect(item){
-      console.log(item)
-      this.currentSelectedMatch = item
-      this.showRestoreMatchSnackbar = true
+    onErasedMatchTableSelect(item) {
+      console.log(item);
+      this.currentSelectedMatch = item;
+      this.showRestoreMatchSnackbar = true;
     },
     deleteSelectedMatch() {
       this.erased.push(this.currentSelectedMatch.id);
@@ -458,7 +491,7 @@ export default {
         .update({
           erased: this.erased
         });
-      tableKey ++
+      tableKey++;
       this.showSnackbar = false;
       this.showSuccessfulDeleteSnackbar = true;
     },
@@ -487,7 +520,7 @@ export default {
             erased: this.erased
           });
       }
-      this.tableKey ++
+      this.tableKey++;
       this.showSuccessfulDeleteSnackbar = false;
       this.showRestoreMatchSnackbar = false;
     },
@@ -501,6 +534,7 @@ export default {
         });
       //close the dialog
       this.newCommentDialog = false;
+      this.showCmtCloseBtn = true;
     },
     pitScouting() {
       db.collection("Teams")
@@ -627,5 +661,9 @@ export default {
 
 .dialog-content {
   overflow: auto;
+}
+
+.info-card {
+  margin: 20px 20px;
 }
 </style>

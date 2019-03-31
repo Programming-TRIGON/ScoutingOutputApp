@@ -79,6 +79,7 @@
       <md-tabs v-if="authLevel==2" md-sync-route @change="onChange">
         <md-tab id="tab-cargo" md-label="Cargo" @click="onChange(0)"></md-tab>
         <md-tab id="tab-hatch" md-label="Hatch" @click="onChange(1)"></md-tab>
+        <md-tab id="tab-climb" md-label="Climb" @click="onChange(3)"></md-tab>
         <md-tab id="tab-custom" md-label="Custom" @click="onChange(2)"></md-tab>
       </md-tabs>
       <div v-if="activeTab==2">
@@ -89,6 +90,10 @@
         <md-field>
           <label>Hatch Weight</label>
           <md-input v-model="hatchCustomWeight"></md-input>
+        </md-field>
+        <md-field>
+          <label>Climb Weight</label>
+          <md-input v-model="climbCustomWeight"></md-input>
         </md-field>
       </div>
       <!-- Team list -->
@@ -160,6 +165,7 @@ export default {
 
       cargoCustomWeight: 0.5,
       hatchCustomWeight: 0.5,
+      climbCustomWeight: 0.2,
       customUpdateIndex: 0,
 
       allianceModeDialog: false,
@@ -173,7 +179,7 @@ export default {
   },
   computed: {
     sortFactor() {
-      const sortings = { 0: "cargo", 1: "hatch", 2: "custom" };
+      const sortings = { 0: "cargo", 1: "hatch", 2: "custom", 3:"climb"};
       return sortings[this.activeTab];
     }
   },
@@ -193,6 +199,12 @@ export default {
     hatchCustomWeight: {
       handler: function(val) {
         localStorage.hatchCustomWeight = val;
+        this.computeCustom();
+      }
+    },
+    climbCustomWeight: {
+      handler: function(val) {
+        localStorage.climbCustomWeight = val;
         this.computeCustom();
       }
     },
@@ -219,9 +231,11 @@ export default {
       this.cargoCustomWeight = localStorage.cargoCustomWeight;
     if (localStorage.hatchCustomWeight)
       this.hatchCustomWeight = localStorage.hatchCustomWeight;
+    if (localStorage.climbCustomWeight)
+      this.climbCustomWeight = localStorage.climbCustomWeight;
     axios
       .get(
-        "https://www.thebluealliance.com/api/v3/event/2019isde4/teams/simple"
+        "https://www.thebluealliance.com/api/v3/event/2019iscmp/teams/simple"
       )
       .then(response => {
         console.log(response);
@@ -265,7 +279,9 @@ export default {
         // index: the ordinal position of the key within the object
         let t = self.teamSummary[key];
         t.custom =
-          self.cargoCustomWeight * t.cargo + self.hatchCustomWeight * t.hatch;
+          self.cargoCustomWeight * t.cargo
+           + self.hatchCustomWeight * t.hatch
+           + self.climbCustomWeight * t.climb;
       });
       this.customUpdateIndex++;
       this.teams = this.teams.sort(this.sortTeams);

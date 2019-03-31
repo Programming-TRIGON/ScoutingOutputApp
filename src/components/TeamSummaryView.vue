@@ -20,6 +20,10 @@
         <b>Hatch</b>
         : Avg: {{hatchStats.avg}} Median: {{hatchStats.median}} Min: {{hatchStats.min}} Max: {{hatchStats.max}}
       </article>
+      <article v-model="climbStats">
+        <b>Climb</b>
+        : Avg: {{climbStats.avg}} Median: {{climbStats.median}} Min: {{climbStats.min}} Max: {{climbStats.max}}
+      </article>
     </div>
   </div>
 </template>
@@ -35,8 +39,9 @@ export default {
       games: [],
       cargoStats: {},
       hatchStats: {},
+      climbStats: {},
       erased: [],
-      renderIdx: 0,
+      renderIdx: 0
     };
   },
   computed: {
@@ -47,13 +52,18 @@ export default {
     //   return this.generateStats("hatch");
     // },
     avgData() {
-      return { cargo: this.cargoStats.avg, hatch: this.hatchStats.avg };
+      return {
+        cargo: this.cargoStats.avg,
+        hatch: this.hatchStats.avg,
+        climb: this.climbStats.avg
+      };
     }
   },
   watch: {
     games() {
       this.cargoStats = this.generateStats("cargo");
       this.hatchStats = this.generateStats("hatch");
+      this.climbStats = this.generateStats("climb");
       this.renderIdx++;
     },
     avgData(val) {
@@ -61,7 +71,7 @@ export default {
     },
     erased: function() {
       this.games = this.games.filter(g => !this.erased.includes(g.id));
-      this.renderIdx ++
+      this.renderIdx++;
     }
   },
   firestore() {
@@ -106,24 +116,35 @@ export default {
   },
   methods: {
     generateStats(piece) {
-      // piece = hatch/cargo
+      // piece = hatch/cargo/climb
       if (this.games.length == 0) {
         return { avg: 0, median: 0, min: 0, max: 0 };
       }
-
-      let filter = new RegExp(piece, "i");
       let values = [];
+      if (piece == "hatch" || piece == "cargo") {
+        let filter = new RegExp(piece, "i");
 
-      this.games.forEach(game => {
-        let sum = 0;
-        game.forEach(pair => {
-          if (pair.key.match(filter)) {
-            sum += parseInt(pair.value);
+        this.games.forEach(game => {
+          if (this.isValidForPiece(game, piece)) {
+            let sum = 0;
+            game.forEach(pair => {
+              if (pair.key.match(filter)) {
+                sum += parseInt(pair.value);
+              }
+            });
+            values.push(sum);
           }
         });
-        values.push(sum);
-      });
-
+      } else {
+        // piece == "climb"
+        this.games.forEach(game => {
+          const climbPair = game.filter(p => p.key.includes("climb_level"));
+          // console.log(climbPair)
+          const climbLevel = Number(climbPair[0].value);
+          if (climbLevel != -1) values.push(3 * Math.pow(2, climbLevel));
+        });
+      }
+      if(values.length==0) return { avg: 0, median: 0, min: 0, max: 0 }; 
       let stats = {
         avg: values.reduce((total, num) => total + num) / values.length,
         median: this.median(values),
@@ -131,6 +152,19 @@ export default {
         max: Math.max(...values)
       };
       return stats;
+    },
+    isValidForPiece(game, piece) {
+      let sum = 0;
+
+      let pieceFilter = new RegExp(piece, "i");
+      let teleopFilter = new RegExp("teleop", "i");
+      game.forEach(pair => {
+        if (pair.key.match(pieceFilter) && pair.key.match(teleopFilter)) {
+          sum += parseInt(pair.value);
+        }
+      });
+
+      return sum != 0;
     },
     median(values) {
       values.sort(function(a, b) {
